@@ -1,0 +1,310 @@
+﻿@page "/"
+@inject IJSRuntime JS
+@using Blazor.Extensions
+@using Blazor.Extensions.Canvas.Canvas2D
+@using Blackjack
+@using Blackjack.Data
+
+<PageTitle>Highroller Heroes</PageTitle>
+
+<div class="GameScreen" style="display: flex; align-items: center; justify-content: center;">
+	<div class="CanvasOverlay" style="width: @canvasWrapperWidth; height: @canvasWrapperHeight;" onmousemove="@HandleMouseMove" onmouseup="@HandleMouseUp">
+		<BECanvas @ref="canvas" Width="canvasWidth" Height="canvasHeight"></BECanvas>
+	</div>
+</div>
+
+<div class="Graphics">
+	@* Buttons *@
+	<img src="Assets/Buttons/Button_double.png" hidden @ref="buttonDouble"/>
+	<img src="Assets/Buttons/Button_hit.png" hidden @ref="buttonHit"/>
+	<img src="Assets/Buttons/Button_stand.png" hidden @ref="buttonStand"/>
+	<img src="Assets/Buttons/Button_split.png" hidden @ref="buttonSplit"/>
+	<img src="Assets/Buttons/Button_double_hover.png" hidden @ref="buttonDoubleHover"/>
+	<img src="Assets/Buttons/Button_hit_hover.png" hidden @ref="buttonHitHover"/>
+	<img src="Assets/Buttons/Button_split_hover.png" hidden @ref="buttonSplitHover"/>
+	<img src="Assets/Buttons/Button_stand_hover.png" hidden @ref="buttonStandHover"/>
+	<img src="Assets/Buttons/Button_hit_disabled.png" hidden @ref="buttonHitDisabled"/>
+	<img src="Assets/Buttons/Button_stand_disabled.png" hidden @ref="buttonStandDisabled"/>
+	<img src="Assets/Buttons/Button_split_disabled.png" hidden @ref="buttonSplitDisabled"/>
+	<img src="Assets/Buttons/Button_double_disabled.png" hidden @ref="buttonDoubleDisabled"/>
+	<img src="Assets/Buttons/Button_Deal.png" hidden @ref="buttonDeal"/>
+	<img src="Assets/Buttons/Button_Deal_Hover.png" hidden @ref="buttonDealHover"/>
+	<img src="Assets/Buttons/Button_IncreaseBet.png" hidden @ref="buttonIncreaseBet"/>
+	<img src="Assets/Buttons/Button_IncreaseBet_Hover.png" hidden @ref="buttonIncreaseBetHover"/>
+	<img src="Assets/Buttons/Button_IncreaseBet_Disabled.png" hidden @ref="buttonIncreaseBetDisabled"/>
+	<img src="Assets/Buttons/Button_DecreaseBet.png" hidden @ref="buttonDecreaseBet"/>
+	<img src="Assets/Buttons/Button_DecreaseBet_Hover.png" hidden @ref="buttonDecreaseBetHover"/>
+	<img src="Assets/Buttons/Button_DecreaseBet_Disabled.png" hidden @ref="buttonDecreaseBetDisabled"/>
+
+	@* UI *@
+	<img src="Assets/UI/PlayerHealthBox.png" hidden @ref="playerHealthBox"/>
+	<img src="Assets/UI/DealerHealthBox.png" hidden @ref="dealerHealthBox"/>
+	<img src="Assets/UI/betBox.png" hidden @ref="betBox"/>
+	<img src="Assets/UI/PlaceBetBox.png" hidden @ref="placeBetBox"/>
+
+	@* Backgrounds *@
+	<img src="Assets/Backgrounds/VerticalBackground.jpg" hidden @ref="verticalBackground"/>
+
+	@* Sun Cards *@
+	<img src="Assets/Cards/Sun/SunDeckBack.png" hidden @ref="sunBack" />
+	<img src="Assets/Cards/Sun/2_Farmer.png" hidden @ref="sunTwo" />
+	<img src="Assets/Cards/Sun/3_Artisan.png" hidden @ref="sunThree" />
+	<img src="Assets/Cards/Sun/4_Guard.png" hidden @ref="sunFour" />
+	<img src="Assets/Cards/Sun/5_Squire.png" hidden @ref="sunFive" />
+	<img src="Assets/Cards/Sun/6_Gryphon.png" hidden @ref="sunSix" />
+	<img src="Assets/Cards/Sun/7_Knight.png" hidden @ref="sunSeven" />
+	<img src="Assets/Cards/Sun/8_Cleric.png" hidden @ref="sunEight" />
+	<img src="Assets/Cards/Sun/9_Ranger.png" hidden @ref="sunNine" />
+	<img src="Assets/Cards/Sun/10_Adept.png" hidden @ref="sunTen" />
+	<img src="Assets/Cards/Sun/A_Oracle.png" hidden @ref="sunAce" />
+	<img src="Assets/Cards/Sun/J_Lancer.png" hidden @ref="sunJack" />
+	<img src="Assets/Cards/Sun/Q_Sage.png" hidden @ref="sunQueen" />
+	<img src="Assets/Cards/Sun/K_Paladin.png" hidden @ref="sunKing" />
+
+	@* Moon Cards *@
+	<img src="Assets/Cards/Moon/MoonDeckBack.png" hidden @ref="moonBack"/>
+	<img src="Assets/Cards/Moon/2_Ghoul.png" hidden @ref="moonTwo"/>
+	<img src="Assets/Cards/Moon/3_Ripper.png" hidden @ref="moonThree"/>
+	<img src="Assets/Cards/Moon/4_Stalker.png" hidden @ref="moonFour"/>
+	<img src="Assets/Cards/Moon/5_Initiate.png" hidden @ref="moonFive"/>
+	<img src="Assets/Cards/Moon/6_Wyvern.png" hidden @ref="moonSix"/>
+	<img src="Assets/Cards/Moon/7_Blackguard.png" hidden @ref="moonSeven"/>
+	<img src="Assets/Cards/Moon/8_Heretic.png" hidden @ref="moonEight"/>
+	<img src="Assets/Cards/Moon/9_FellTamer.png" hidden @ref="moonNine"/>
+	<img src="Assets/Cards/Moon/10_VoidScholar.png" hidden @ref="moonTen"/>
+	<img src="Assets/Cards/Moon/A_Doomsayer.png" hidden @ref="moonAce"/>
+	<img src="Assets/Cards/Moon/J_HellKnight.png" hidden @ref="moonJack"/>
+	<img src="Assets/Cards/Moon/Q_CryptKeeper.png" hidden @ref="moonQueen"/>
+	<img src="Assets/Cards/Moon/K_Tyrant.png" hidden @ref="moonKing"/>
+
+</div>
+
+@code {
+	//Page set-up
+	private BECanvasComponent canvas { get; set; }
+	private Canvas2DContext context { get; set; }
+	private IJSObjectReference JSModule { get; set; }
+
+	//Canvas Parameters
+	private int canvasWidth = 896;
+	private int canvasHeight = 1576;
+	private string canvasWrapperWidth = "896px";
+	private string canvasWrapperHeight = "1576px";
+
+	//Game loop params
+	private Game game { get; set; }
+	private System.Threading.Timer gameTimer;
+	private DateTime lastFrameTime;
+
+	//Graphics
+	//Backgrounds
+	ElementReference verticalBackground { get; set; }
+
+	//Buttons
+	ElementReference buttonHit { get; set; }
+	ElementReference buttonHitHover { get; set; }
+	ElementReference buttonHitDisabled { get; set; }
+
+	ElementReference buttonStand { get; set; }
+	ElementReference buttonStandHover { get; set; }
+	ElementReference buttonStandDisabled { get; set; }
+
+	ElementReference buttonDouble { get; set; }
+	ElementReference buttonDoubleHover { get; set; }
+	ElementReference buttonDoubleDisabled { get; set; }
+
+	ElementReference buttonSplit { get; set; }
+	ElementReference buttonSplitHover { get; set; }
+	ElementReference buttonSplitDisabled { get; set; }
+
+	ElementReference buttonDeal { get; set; }
+	ElementReference buttonDealHover { get; set; }
+
+	ElementReference buttonDecreaseBet { get; set; }
+	ElementReference buttonDecreaseBetHover { get; set; }
+	ElementReference buttonDecreaseBetDisabled { get; set; }
+
+	ElementReference buttonIncreaseBet { get; set; }
+	ElementReference buttonIncreaseBetHover { get; set; }
+	ElementReference buttonIncreaseBetDisabled { get; set; }
+
+	//UI
+	ElementReference playerHealthBox { get; set; }
+	ElementReference dealerHealthBox { get; set; }
+	ElementReference betBox { get; set; }
+	ElementReference placeBetBox { get; set; }
+
+	//Sun Cards
+	ElementReference sunBack { get; set; }
+	ElementReference sunTwo { get; set; }
+	ElementReference sunThree { get; set; }
+	ElementReference sunFour { get; set; }
+	ElementReference sunFive { get; set; }
+	ElementReference sunSix { get; set; }
+	ElementReference sunSeven { get; set; }
+	ElementReference sunEight { get; set; }
+	ElementReference sunNine { get; set; }
+	ElementReference sunTen { get; set; }
+	ElementReference sunAce { get; set; }
+	ElementReference sunJack { get; set; }
+	ElementReference sunKing { get; set; }
+	ElementReference sunQueen { get; set; }
+
+	//Moon Cards
+	ElementReference moonBack { get; set; }
+	ElementReference moonTwo { get; set; }
+	ElementReference moonThree { get; set; }
+	ElementReference moonFour { get; set; }
+	ElementReference moonFive { get; set; }
+	ElementReference moonSix { get; set; }
+	ElementReference moonSeven { get; set; }
+	ElementReference moonEight { get; set; }
+	ElementReference moonNine { get; set; }
+	ElementReference moonTen { get; set; }
+	ElementReference moonAce { get; set; }
+	ElementReference moonJack { get; set; }
+	ElementReference moonQueen { get; set; }
+	ElementReference moonKing { get; set; }
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			JSModule = await JS.InvokeAsync<IJSObjectReference>("import", "./Pages/Home.razor.js");
+			await UpdateCanvasDimensions();
+
+			context = await canvas.CreateCanvas2DAsync();
+
+			await InstantiateGame();
+
+			lastFrameTime = DateTime.Now;
+			gameTimer = new System.Threading.Timer(GameLoop, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(16));
+		}
+	}
+
+	private async Task UpdateCanvasDimensions()
+	{
+		var dimensions = await JSModule.InvokeAsync<BrowserDimensions>("getBrowserDimensions");
+
+		//Mobile dimensions (Expand further -> if height > width)
+		canvasHeight = dimensions.height;
+
+		float canvasVerticalHeight = Settings.canvasVerticalHeight;
+		float canvasScale = canvasHeight / canvasVerticalHeight;
+
+		Settings.canvasScale = canvasScale;
+
+		canvasWidth = (int)(Settings.canvasVerticalWidth * canvasScale);
+
+		canvasWrapperWidth = canvasWidth.ToString() + "px";
+		canvasWrapperHeight = canvasHeight.ToString() + "px";
+
+		StateHasChanged();
+	}
+
+	private async Task InstantiateGame()
+	{
+		//Sun Cards
+		Graphics.AddSunCardToDictionary("Back", sunBack);
+		Graphics.AddSunCardToDictionary("2", sunTwo);
+		Graphics.AddSunCardToDictionary("3", sunThree);
+		Graphics.AddSunCardToDictionary("4", sunFour);
+		Graphics.AddSunCardToDictionary("5", sunFive);
+		Graphics.AddSunCardToDictionary("6", sunSix);
+		Graphics.AddSunCardToDictionary("7", sunSeven);
+		Graphics.AddSunCardToDictionary("8", sunEight);
+		Graphics.AddSunCardToDictionary("9", sunNine);
+		Graphics.AddSunCardToDictionary("10", sunTen);
+		Graphics.AddSunCardToDictionary("A", sunAce);
+		Graphics.AddSunCardToDictionary("J", sunJack);
+		Graphics.AddSunCardToDictionary("Q", sunQueen);
+		Graphics.AddSunCardToDictionary("K", sunKing);
+
+		//Moon Cards
+		Graphics.AddMoonCardToDictionary("Back", moonBack);
+		Graphics.AddMoonCardToDictionary("2", moonTwo);
+		Graphics.AddMoonCardToDictionary("3", moonThree);
+		Graphics.AddMoonCardToDictionary("4", moonFour);
+		Graphics.AddMoonCardToDictionary("5", moonFive);
+		Graphics.AddMoonCardToDictionary("6", moonSix);
+		Graphics.AddMoonCardToDictionary("7", moonSeven);
+		Graphics.AddMoonCardToDictionary("8", moonEight);
+		Graphics.AddMoonCardToDictionary("9", moonNine);
+		Graphics.AddMoonCardToDictionary("10", moonTen);
+		Graphics.AddMoonCardToDictionary("A", moonAce);
+		Graphics.AddMoonCardToDictionary("J", moonJack);
+		Graphics.AddMoonCardToDictionary("Q", moonQueen);
+		Graphics.AddMoonCardToDictionary("K", moonKing);
+
+		//Backgrounds
+		Graphics.AddBackgroundToDictionary("Vertical", verticalBackground);
+
+		//Buttons
+		Graphics.AddButtonToDictionary("Hit", buttonHit);
+		Graphics.AddButtonToDictionary("Hit Hover", buttonHitHover);
+		Graphics.AddButtonToDictionary("Hit Disabled", buttonHitDisabled);
+		Graphics.AddButtonToDictionary("Stand", buttonStand);
+		Graphics.AddButtonToDictionary("Stand Hover", buttonStandHover);
+		Graphics.AddButtonToDictionary("Stand Disabled", buttonStandDisabled);
+		Graphics.AddButtonToDictionary("Double", buttonDouble);
+		Graphics.AddButtonToDictionary("Double Hover", buttonDoubleHover);
+		Graphics.AddButtonToDictionary("Double Disabled", buttonDoubleDisabled);
+		Graphics.AddButtonToDictionary("Split", buttonSplit);
+		Graphics.AddButtonToDictionary("Split Hover", buttonSplitHover);
+		Graphics.AddButtonToDictionary("Split Disabled", buttonSplitDisabled);
+		Graphics.AddButtonToDictionary("Deal", buttonDeal);
+		Graphics.AddButtonToDictionary("Deal Hover", buttonDealHover);
+		Graphics.AddButtonToDictionary("Increase", buttonIncreaseBet);
+		Graphics.AddButtonToDictionary("Increase Hover", buttonIncreaseBetHover);
+		Graphics.AddButtonToDictionary("Increase Disabled", buttonIncreaseBetDisabled);
+		Graphics.AddButtonToDictionary("Decrease", buttonDecreaseBet);
+		Graphics.AddButtonToDictionary("Decrease Hover", buttonDecreaseBetHover);
+		Graphics.AddButtonToDictionary("Decrease Disabled", buttonDecreaseBetDisabled);
+
+
+		//UI
+		Graphics.AddInterfaceToDictionary("Player Health", playerHealthBox);
+		Graphics.AddInterfaceToDictionary("Dealer Health", dealerHealthBox);
+		Graphics.AddInterfaceToDictionary("Bet Box", betBox);
+		Graphics.AddInterfaceToDictionary("Place Bet", placeBetBox);
+
+
+		game = new Game(canvas, context, JSModule);
+	}
+
+	private async void GameLoop(object state)
+	{
+		var currentTime = DateTime.Now;
+		var deltaTime = (float)(currentTime - lastFrameTime).TotalSeconds;
+		lastFrameTime = currentTime;
+
+		await RunGame(deltaTime);
+	}
+
+	private async Task RunGame(float deltaTime)
+	{
+		game.RenderAndUpdate(deltaTime);
+	}
+
+	private void HandleMouseMove(MouseEventArgs args)
+	{
+		float x = (float)args.ClientX;
+		float y = (float)args.ClientY;
+
+		PlayerInput.SetMouseCoords(x, y);
+	}
+
+	private void HandleMouseUp(MouseEventArgs args)
+	{
+		float x = (float)args.ClientX;
+		float y = (float)args.ClientY;
+
+		PlayerInput.SetMouseClicked(x, y);
+	}
+
+	public class BrowserDimensions
+	{
+		public int width { get; set; }
+		public int height { get; set; }
+	}
+}
