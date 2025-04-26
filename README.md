@@ -20,4 +20,5 @@ High Roller Heroes is a web game being devoled in Blazor Webassembly that combin
 - Roguelike mechanics that allow unlockable cards as bosses(dealers) are defeated.
 - Deck building mechanics
 - Game play polish (Animations, sound effects)
+- SQLite leaderboards
 - Deploy to itch.io
