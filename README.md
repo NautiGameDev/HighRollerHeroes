@@ -1,7 +1,7 @@
-### High Roller Heroes
+## High Roller Heroes
 High Roller Heroes is a web game being devoled in Blazor Webassembly that combines Blackjack with Trading Card Game mechanics. This game is still under development but I expect a live version to be available on itch.io within the next month. The goal is to make a Dark Fantasy themed blackjack game with some card abilities that impact the traditional Blackjack gameplay. Current plans are to use face cards as the special cards that will impact the general strategy in some way, such as making the dealer's facedown card visible, seeing the next card in the deck, adding points to the total value without busting, or increasing the amount of currency (health) won if the player wins by x%.
 
-## Current State
+### Current State
 
 **Finished:**
 - UI is completed with dynamic working interface that sends player input to the game for processing
