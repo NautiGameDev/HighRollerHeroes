@@ -21,8 +21,11 @@ High Roller Heroes is a web game being devoled in Blazor Webassembly that combin
 - Deploy to itch.io
 
 **Video Previews**
+
 [Early visuals preview (Basic Blackjack Game)](https://www.youtube.com/shorts/L5V5OT7_2bE)
 
 **Update Notes**
+
 *4/27/25*
+
 The current version of the game is a basic Blackjack game with a starter card set. There isn't any player/dealer win conditions as far as health dropping below zero. But the player can adjust the bet and play as many rounds as desired. All basic game states are implemented, such as bet, deal, player turn, dealer turn, and payout. Currently, none of the abilities have been implemented into the game but that's next on my list. The game is just basic Blackjack. I'm also still missing the split action from the player, which will be implemented later when I have more energy to program. I also uploaded the first preview to youtube: [here](https://www.youtube.com/shorts/L5V5OT7_2bE)
