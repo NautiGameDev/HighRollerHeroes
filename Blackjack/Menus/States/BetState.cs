@@ -61,7 +61,11 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
             else if (PlayerInput.buttonsPressed.Peek() == "Deal")
             {
-                
+                Console.WriteLine("Dealing cards!");
+                PlayerInput.buttonsPressed.Dequeue();
+                readyToExit = true;
+                DrawState newState = new DrawState(playMenu);
+                playMenu.ChangeState(newState);
             }
             
         }

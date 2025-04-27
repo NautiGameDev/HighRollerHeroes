@@ -14,11 +14,11 @@ namespace HighRollerHeroes.Blackjack.Entities
         int spriteWidth { get; set; }
         int spriteHeight { get; set; }
 
-        float xPos { get; set; }
-        float yPos { get; set; }
+        public float xPos { get; set; }
+        public float yPos { get; set; }
 
-        string cardValue { get; set; }
-        bool isFlipped { get; set; }
+        public string cardValue { get; set; }
+        public bool isFlipped { get; set; }
 
         public Card(DeckType deckType, float xPos, float yPos, string cardValue, bool isFlipped)
         {

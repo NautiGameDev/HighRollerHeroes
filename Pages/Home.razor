@@ -7,7 +7,7 @@
 
 <PageTitle>Highroller Heroes</PageTitle>
 
-<div class="GameScreen" style="display: flex; align-items: center; justify-content: center;">
+<div class="GameScreen">
 	<div class="CanvasOverlay" style="width: @canvasWrapperWidth; height: @canvasWrapperHeight;" onmousemove="@HandleMouseMove" onmouseup="@HandleMouseUp">
 		<BECanvas @ref="canvas" Width="canvasWidth" Height="canvasHeight"></BECanvas>
 	</div>
@@ -35,12 +35,19 @@
 	<img src="Assets/Buttons/Button_DecreaseBet.png" hidden @ref="buttonDecreaseBet"/>
 	<img src="Assets/Buttons/Button_DecreaseBet_Hover.png" hidden @ref="buttonDecreaseBetHover"/>
 	<img src="Assets/Buttons/Button_DecreaseBet_Disabled.png" hidden @ref="buttonDecreaseBetDisabled"/>
+	<img src="Assets/Buttons/Button_Confirm.png" hidden @ref="buttonConfirm"/>
+	<img src="Assets/Buttons/Button_Confirm_Hover.png" hidden @ref="buttonConfirmHover"/>
 
 	@* UI *@
 	<img src="Assets/UI/PlayerHealthBox.png" hidden @ref="playerHealthBox"/>
 	<img src="Assets/UI/DealerHealthBox.png" hidden @ref="dealerHealthBox"/>
 	<img src="Assets/UI/betBox.png" hidden @ref="betBox"/>
 	<img src="Assets/UI/PlaceBetBox.png" hidden @ref="placeBetBox"/>
+	<img src="Assets/UI/HandValue.png" hidden @ref="handValue"/>
+	<img src="Assets/UI/PlayerWinDisplay.png" hidden @ref="playerWin"/>
+	<img src="Assets/UI/PlayerBust.png" hidden @ref="playerBust"/>
+	<img src="Assets/UI/DealerWins.png" hidden @ref="dealerWin"/>
+	<img src="Assets/UI/DealerBust.png" hidden @ref="dealerBust"/>
 
 	@* Backgrounds *@
 	<img src="Assets/Backgrounds/VerticalBackground.jpg" hidden @ref="verticalBackground"/>
@@ -128,11 +135,19 @@
 	ElementReference buttonIncreaseBetHover { get; set; }
 	ElementReference buttonIncreaseBetDisabled { get; set; }
 
+	ElementReference buttonConfirm { get; set; }
+	ElementReference buttonConfirmHover { get; set; }
+
 	//UI
 	ElementReference playerHealthBox { get; set; }
 	ElementReference dealerHealthBox { get; set; }
 	ElementReference betBox { get; set; }
 	ElementReference placeBetBox { get; set; }
+	ElementReference handValue { get; set; }
+	ElementReference playerWin { get; set; }
+	ElementReference playerBust { get; set; }
+	ElementReference dealerWin { get; set; }
+	ElementReference dealerBust { get; set; }
 
 	//Sun Cards
 	ElementReference sunBack { get; set; }
@@ -260,6 +275,8 @@
 		Graphics.AddButtonToDictionary("Decrease", buttonDecreaseBet);
 		Graphics.AddButtonToDictionary("Decrease Hover", buttonDecreaseBetHover);
 		Graphics.AddButtonToDictionary("Decrease Disabled", buttonDecreaseBetDisabled);
+		Graphics.AddButtonToDictionary("Confirm", buttonConfirm);
+		Graphics.AddButtonToDictionary("Confirm Hover", buttonConfirmHover);
 
 
 		//UI
@@ -267,6 +284,11 @@
 		Graphics.AddInterfaceToDictionary("Dealer Health", dealerHealthBox);
 		Graphics.AddInterfaceToDictionary("Bet Box", betBox);
 		Graphics.AddInterfaceToDictionary("Place Bet", placeBetBox);
+		Graphics.AddInterfaceToDictionary("Hand Value", handValue);
+		Graphics.AddInterfaceToDictionary("Player Win", playerWin);
+		Graphics.AddInterfaceToDictionary("Player Bust", playerBust);
+		Graphics.AddInterfaceToDictionary("Dealer Win", dealerWin);
+		Graphics.AddInterfaceToDictionary("Dealer Bust", dealerBust);
 
 
 		game = new Game(canvas, context, JSModule);
