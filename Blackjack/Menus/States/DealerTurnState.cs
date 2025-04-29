@@ -15,15 +15,17 @@ namespace HighRollerHeroes.Blackjack.Menus.States
         public override void Enter()
         {
             playMenu.ToggleActionBar(true); //Disable player action bar
-            List<Card> dealerHand = playMenu.dealer.GetHand();
 
-            foreach (Card card in dealerHand) 
+            Player dealer = playMenu.dealer;
+            Hand dealerHand = dealer.GetCurrentHand();
+
+            foreach (Card card in dealerHand.cards) 
             { 
                 card.isFlipped = false;
             }
 
-            playMenu.dealer.CalculateHandValue();
-            playMenu.dealerHandValue.UpdateMessage(playMenu.dealer.handValue.ToString());
+            dealerHand.CalculateHandValue();
+            playMenu.dealerHandValue.UpdateMessage(dealer.GetHandValue());
         }
 
         public override void Update(float deltaTime)
@@ -35,7 +37,9 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
             if (readyToExit) return;
 
-            if (playMenu.dealer.handValue < 17)
+            Hand dealerHand = playMenu.dealer.GetCurrentHand();
+
+            if (dealerHand.handValue < 17)
             {
                 if (cardDrawTimer <= 0)
                 {
@@ -54,35 +58,22 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
         private async void DealerDrawCard()
         {
-            List<Card> dealerHand = playMenu.dealer.GetHand();
+            Player dealer = playMenu.dealer;
 
-            foreach (Card card in dealerHand)
-            {
-                card.xPos -= 25;
-            }
+            dealer.DrawCardFromDeck(false, Card.DeckType.MOON);
 
-            string newCard = await playMenu.dealer.DrawCardFromDeck();
 
-            /*
-             * New Card position is calculated by taking base position (300,925) and subtracting/adding offsets
-             * Offsets are calculated by taking the amount of hits player has taken + 1 multiplied by offset amount
-             */
-
-            int timesHit = dealerHand.Count() - 2;
-            float newCardXPos = (300 - (25 * (timesHit + 1))) + (100 * (timesHit + 1));
-            float newCardYPos = 225 + (25 * (timesHit + 1));
-            Card drawnCard = new Card(Card.DeckType.MOON, newCardXPos, newCardYPos, newCard, false);
-
-            playMenu.dealer.AddCardToHand(drawnCard);
-            playMenu.AddEntityToEntities(drawnCard);
-            playMenu.dealerHandValue.UpdateMessage(playMenu.dealer.handValue.ToString());
+            playMenu.dealerHandValue.UpdateMessage(dealer.GetHandValue());
 
             TestForBust();
         }
 
         public void TestForBust()
         {
-            if (playMenu.dealer.handValue > 21)
+            Player dealer = playMenu.dealer;
+            Hand dealerHand = dealer.GetCurrentHand();
+
+            if (dealerHand.handValue > 21)
             {
                 readyToExit = true;
                 PayOutState payoutState = new PayOutState(playMenu);

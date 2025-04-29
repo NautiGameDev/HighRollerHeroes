@@ -20,21 +20,35 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
             await Task.Delay(500);
 
-            if (playMenu.player.handValue > 21)
+            Player player = playMenu.player;
+            Player dealer = playMenu.dealer;
+
+            player.handIndex = 0;
+
+            Hand playerHand = player.GetCurrentHand();
+            Hand dealerHand = dealer.GetCurrentHand();
+
+
+            TestWinConditions(playerHand, dealerHand);
+        }
+
+        private void TestWinConditions(Hand playerHand, Hand dealerHand)
+        {
+            if (playerHand.handValue > 21)
             {
                 UIBox = new Sprite("Player Bust", (Settings.canvasVerticalWidth / 2) - (800 / 2), 400, 800, 632, 0);
             }
-            else if (playMenu.dealer.handValue > 21)
+            else if (dealerHand.handValue > 21)
             {
                 UIBox = new Sprite("Dealer Bust", (Settings.canvasVerticalWidth / 2) - (800 / 2), 400, 800, 632, 0);
-                HandlePlayerWin();
+                HandlePlayerWin(playerHand);
             }
-            else if(playMenu.player.handValue > playMenu.dealer.handValue)
+            else if (playerHand.handValue > dealerHand.handValue)
             {
                 UIBox = new Sprite("Player Win", (Settings.canvasVerticalWidth / 2) - (800 / 2), 400, 800, 632, 0);
-                HandlePlayerWin();
+                HandlePlayerWin(playerHand);
             }
-            else if (playMenu.dealer.handValue >= playMenu.player.handValue)
+            else if (dealerHand.handValue >= playerHand.handValue)
             {
                 UIBox = new Sprite("Dealer Win", (Settings.canvasVerticalWidth / 2) - (800 / 2), 400, 800, 632, 0);
             }
@@ -44,12 +58,15 @@ namespace HighRollerHeroes.Blackjack.Menus.States
             playMenu.AddEntityToEntities(confirmButton);
         }
 
-        private void HandlePlayerWin()
+        private void HandlePlayerWin(Hand playerHand)
         {
-            playMenu.dealer.health -= playMenu.bet;
-            playMenu.player.health += (playMenu.bet * 2);
-            playMenu.playerHPText.UpdateMessage(playMenu.player.health.ToString());
-            playMenu.dealerHPText.UpdateMessage(playMenu.dealer.health.ToString());
+            Player player = playMenu.player;
+            Player dealer = playMenu.dealer;
+
+            dealer.health -= playerHand.GetBet();
+            player.health += (playerHand.GetBet() * 2);
+            playMenu.playerHPText.UpdateMessage(player.health.ToString());
+            playMenu.dealerHPText.UpdateMessage(dealer.health.ToString());
         }
 
         public override void Update(float deltaTime)
@@ -59,10 +76,23 @@ namespace HighRollerHeroes.Blackjack.Menus.States
             if (PlayerInput.buttonsPressed.Peek() == "Confirm")
             {
                 PlayerInput.buttonsPressed.Dequeue();
-                readyToExit = true;
+                Player player = playMenu.player;
 
-                ResetState resetState = new ResetState(playMenu);
-                playMenu.ChangeState(resetState);
+                if (player.hasSplit && player.handIndex == 0)
+                {
+                    player.handIndex = 1;
+                    Hand playerHand = player.GetCurrentHand();
+                    Hand dealerHand = playMenu.dealer.GetCurrentHand();
+
+                    TestWinConditions(playerHand, dealerHand);
+                }
+                else
+                {
+                    readyToExit = true;
+                    ResetState resetState = new ResetState(playMenu);
+                    playMenu.ChangeState(resetState);
+                }
+                
             }
         }
 

@@ -16,6 +16,10 @@ namespace HighRollerHeroes.Blackjack.Entities
 
         public float xPos { get; set; }
         public float yPos { get; set; }
+        //Unscaled position is used for accurate reference points when drawing new cards
+        //This is needed because scaling is done within the card class. Using xPos, yPos to place new cards creates flawed offset
+        public float unscaledXPos { get; set; }
+        public float unscaledYPos { get; set; }
 
         public string cardValue { get; set; }
         public bool isFlipped { get; set; }
@@ -23,6 +27,8 @@ namespace HighRollerHeroes.Blackjack.Entities
         public Card(DeckType deckType, float xPos, float yPos, string cardValue, bool isFlipped)
         {
             this.currentDeck = deckType;
+            this.unscaledXPos = xPos;
+            this.unscaledYPos = yPos;
             this.xPos = xPos * Settings.canvasScale;
             this.yPos = yPos * Settings.canvasScale;
             this.cardValue = cardValue;
@@ -47,6 +53,22 @@ namespace HighRollerHeroes.Blackjack.Entities
 
             spriteWidth = (int)(328 * Settings.canvasScale);
             spriteHeight = (int)(461 * Settings.canvasScale);
+        }
+
+        public void MoveCard(float x, float y)
+        {
+            unscaledXPos = x;
+            xPos = x * Settings.canvasScale;
+            unscaledYPos = y;
+            yPos = y * Settings.canvasScale;
+        }
+
+        public void MoveCardByOffset(float x, float y)
+        {
+            unscaledXPos += x;
+            xPos = unscaledXPos * Settings.canvasScale;
+            unscaledYPos += y;
+            yPos = unscaledYPos * Settings.canvasScale;
         }
 
         public override async Task Render()

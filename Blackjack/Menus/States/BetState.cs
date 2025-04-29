@@ -12,9 +12,12 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
         TextElement newBet { get; set; }
 
-        public BetState(Play playMenu) : base(playMenu)
+        public int bet { get; set; }
+        public int betInterval { get; set; } = 50;
+
+        public BetState(Play playMenu, int currentBet) : base(playMenu)
         {
-            
+            this.bet = currentBet;
         }
 
         public override void Enter()
@@ -33,7 +36,7 @@ namespace HighRollerHeroes.Blackjack.Menus.States
             dealButton = new Button("Deal", (Settings.canvasVerticalWidth / 2) - (261 / 2), 1050);
             playMenu.AddEntityToEntities(dealButton);
 
-            newBet = new TextElement(playMenu.ConvertBetToString(), 72, (Settings.canvasVerticalWidth / 2), 500 + (632 / 2));
+            newBet = new TextElement(Utilities.ConvertBetToString(bet), 72, (Settings.canvasVerticalWidth / 2), 500 + (632 / 2));
             playMenu.AddEntityToEntities(newBet);
         }
 
@@ -45,23 +48,25 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
             if (PlayerInput.buttonsPressed.Peek() == "Increase")
             {
-                playMenu.bet += playMenu.betInterval;
-                newBet.UpdateMessage(playMenu.ConvertBetToString());
-                playMenu.betAmount.UpdateMessage(playMenu.ConvertBetToString());
+                bet += betInterval;
+                newBet.UpdateMessage(Utilities.ConvertBetToString(bet));
+                playMenu.betAmount.UpdateMessage(Utilities.ConvertBetToString(bet));
                 PlayerInput.buttonsPressed.Dequeue();
             }
             
             else if (PlayerInput.buttonsPressed.Peek() == "Decrease")
             {
-                playMenu.bet -= playMenu.betInterval;
-                newBet.UpdateMessage(playMenu.ConvertBetToString());
-                playMenu.betAmount.UpdateMessage(playMenu.ConvertBetToString());
+                bet -= betInterval;
+                newBet.UpdateMessage(Utilities.ConvertBetToString(bet));
+                playMenu.betAmount.UpdateMessage(Utilities.ConvertBetToString(bet));
                 PlayerInput.buttonsPressed.Dequeue();
             }
 
             else if (PlayerInput.buttonsPressed.Peek() == "Deal")
             {
-                Console.WriteLine("Dealing cards!");
+                Player player = playMenu.player;
+                player.hands[0].SetBet(bet);
+                player.hands[1].SetBet(bet);
                 PlayerInput.buttonsPressed.Dequeue();
                 readyToExit = true;
                 DrawState newState = new DrawState(playMenu);
@@ -72,26 +77,27 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
         private void TestButtonStates()
         {
-            int nextBetLow = playMenu.bet - playMenu.betInterval;
-            int nextBetHigh = playMenu.bet + playMenu.betInterval;
+            Player player = playMenu.player;
+            int nextBetLow = bet - betInterval;
+            int nextBetHigh = bet + betInterval;
 
             //Decrease bet button
-            if (nextBetLow < playMenu.betInterval)
+            if (nextBetLow < betInterval)
             {
                 decreaseBetButton.isDisabled = true;
                 
             }
-            else if (nextBetLow >= playMenu.betInterval)
+            else if (nextBetLow >= betInterval)
             {
                 decreaseBetButton.isDisabled = false;
             }
 
             //Increase bet button
-            if (playMenu.player.health >= nextBetHigh)
+            if (player.health >= nextBetHigh)
             {
                 increaseBetButton.isDisabled = false;
             }
-            else if (playMenu.player.health < nextBetHigh)
+            else if (player.health < nextBetHigh)
             {
                 increaseBetButton.isDisabled= true;
             }

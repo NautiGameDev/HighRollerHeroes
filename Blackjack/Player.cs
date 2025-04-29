@@ -1,6 +1,7 @@
 ﻿
 using System.Numerics;
 using HighRollerHeroes.Blackjack.Entities;
+using HighRollerHeroes.Blackjack.Menus;
 using Microsoft.VisualBasic;
 
 namespace HighRollerHeroes.Blackjack
@@ -10,96 +11,108 @@ namespace HighRollerHeroes.Blackjack
         public int health { get; set; } = 1000;
 
         private Deck deckReference {  get; set; }
-        private List<Card> hand = new List<Card>();
-        public int handValue { get; private set; } = 0;
+        private Play playMenu { get; set; }
+        public Hand[] hands { get; private set; } = new Hand[2];
 
-        public Player(int health, Deck deck)
+        public bool hasSplit = false;
+        public int handIndex = 0;
+
+        public Player(int health, Deck deck, Play playMenu)
         {
             this.health = health;
             this.deckReference = deck;
+            this.playMenu = playMenu;
+
+            InstantiateHands();
         }
 
-        public async Task<string> DrawCardFromDeck()
+        public void InstantiateHands()
         {
-            string card = await deckReference.DrawCard();            
-            return card;
+            //Instantiate hands
+            Hand firstHand = new Hand(this, playMenu, deckReference);
+            hands[0] = firstHand;
+            Hand secondHand = new Hand(this, playMenu, deckReference);
+            hands[1] = secondHand;
         }
 
-        public void AddCardToHand(Card card)
+        public async Task DrawCardFromDeck(bool isFaceDown, Card.DeckType deckType)
         {
-            hand.Add(card);
-            CalculateHandValue();
+            await hands[handIndex].DrawCardFromDeck(isFaceDown, deckType);
         }
 
-        public void CalculateHandValue()
+        public string GetHandValue()
         {
-            handValue = 0;
-            int aces = 0;
-
-            foreach (Card card in hand)
+            if (!hasSplit)
             {
-                if (!card.isFlipped)
-                {
-                    if (card.cardValue == "J" || card.cardValue == "Q" || card.cardValue == "K")
-                    {
-                        handValue += 10;
-                    }
-                    else if (card.cardValue == "A")
-                    {
-                        aces += 1;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            int cardValue = int.Parse(card.cardValue);
-                            handValue += cardValue;
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine($"Couldn't parse card value {card.cardValue}");
-                        }
-                    }
-                }
-
-                /*
-                 FIXME: Aces aren't being calculated correctly on initial draw
-                 */
-
-                //Handle aces
-                if (aces > 0)
-                {
-
-                    for (int i = 0; i < aces; i++)
-                    {
-                        if (handValue + 11 > 21)
-                        {
-                            handValue += 1;
-                        }
-                        else
-                        {
-                            handValue += 11;
-                        }
-                    }
-                }
-
+                return hands[0].handValue.ToString();
+            }
+            else
+            {
+                return hands[0].handValue.ToString() + "/" + hands[1].handValue.ToString();
             }
         }
 
-        public int GetHandSize()
+        public Hand GetCurrentHand()
         {
-            return hand.Count();
+            return hands[handIndex];
         }
 
-        public List<Card> GetHand()
+        public string GetBets()
         {
-            return hand;
+            if (!hasSplit)
+            {
+                return hands[0].GetBet().ToString();
+            }
+            else
+            {
+                return hands[0].GetBet().ToString() + "/" + hands[1].GetBet().ToString();
+            }
         }
 
-        public void ClearHand()
+        public bool TestCurrentHandBust()
         {
-            hand.Clear();
-            CalculateHandValue();
+            Hand currentHand = hands[handIndex];
+            if (currentHand.handValue > 21)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public void SplitHand()
+        {
+            handIndex = 0;
+            hasSplit = true;
+            Card secondCard = hands[0].cards.Peek();
+            hands[1].cards.Push(secondCard);
+            hands[0].cards.Pop();
+
+            hands[0].MoveHand(100, 900);
+            hands[1].MoveHand(450, 900);
+        }
+
+        public void ResetHands()
+        {
+            //Remove rendered cards
+            foreach (Card card in hands[0].cards)
+            {
+                playMenu.RemoveEntityFromEntities(card);
+            }
+
+            if (hasSplit)
+            {
+                foreach (Card card in hands[1].cards)
+                {
+                    playMenu.RemoveEntityFromEntities(card);
+                }
+            }
+
+            //Reset split actions this turn
+            hasSplit = false;
+            handIndex = 0;
+
+            //New set of hand objects
+            InstantiateHands();
         }
     }
 }

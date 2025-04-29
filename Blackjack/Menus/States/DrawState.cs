@@ -1,6 +1,11 @@
 ﻿using HighRollerHeroes.Blackjack.Data;
 using HighRollerHeroes.Blackjack.Entities;
 
+/* 
+ * Initial card draw state after player places their bet
+ * Draws two cards for each player and dealer before moving on to player turn state 
+ */
+
 namespace HighRollerHeroes.Blackjack.Menus.States
 {
     public class DrawState : State
@@ -15,39 +20,27 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
         public async override void Enter()
         {
-            playMenu.player.health -= playMenu.bet;
-            playMenu.playerHPText.UpdateMessage(playMenu.player.health.ToString());
+            Player player = playMenu.player;
+            Player dealer = playMenu.dealer;
+
+            player.health -= player.hands[0].bet;
+            playMenu.playerHPText.UpdateMessage(player.health.ToString());
 
             await Task.Delay(250);
-
-            string newCard = await playMenu.player.DrawCardFromDeck();
-            Card pCardOne = new Card(Card.DeckType.SUN, 200, 900, newCard, false);
-            playMenu.player.AddCardToHand(pCardOne);
-            playMenu.AddEntityToEntities(pCardOne);
+            player.DrawCardFromDeck(false, Card.DeckType.SUN);
 
             await Task.Delay(250);
-
-            newCard = await playMenu.player.DrawCardFromDeck();
-            Card pCardTwo = new Card(Card.DeckType.SUN, 300, 925, newCard, false);
-            playMenu.player.AddCardToHand(pCardTwo);
-            playMenu.AddEntityToEntities(pCardTwo);
+            player.DrawCardFromDeck(false, Card.DeckType.SUN);
 
             await Task.Delay(250);
-
-            newCard = await playMenu.dealer.DrawCardFromDeck();
-            Card dCardOne = new Card(Card.DeckType.MOON, 200, 200, newCard, true);
-            playMenu.dealer.AddCardToHand(dCardOne);
-            playMenu.AddEntityToEntities(dCardOne);
+            dealer.DrawCardFromDeck(true, Card.DeckType.MOON);
 
             await Task.Delay(250);
+            dealer.DrawCardFromDeck(false, Card.DeckType.MOON);
 
-            newCard = await playMenu.dealer.DrawCardFromDeck();
-            Card dCardTwo = new Card(Card.DeckType.MOON, 300, 225, newCard, false);
-            playMenu.dealer.AddCardToHand(dCardTwo);
-            playMenu.AddEntityToEntities(dCardTwo);
-
-            playMenu.playerHandValue.UpdateMessage(playMenu.player.handValue.ToString());
-            playMenu.dealerHandValue.UpdateMessage(playMenu.dealer.handValue.ToString());
+            
+            playMenu.playerHandValue.UpdateMessage(player.GetHandValue());
+            playMenu.dealerHandValue.UpdateMessage(dealer.GetHandValue());
 
             hasDealtCards = true;
         }

@@ -10,34 +10,31 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
         public override void Enter()
         {
+            Hand playerHand = playMenu.player.GetCurrentHand();
+            BetState betState = new BetState(playMenu, playerHand.GetBet());
+
             ResetPlayerHand();
             ResetDealerHand();
             readyToExit = true;
 
-            BetState betState = new BetState(playMenu);
+            
             playMenu.ChangeState(betState);
         }
 
         private void ResetPlayerHand()
         {
-            List<Card> playerHand = playMenu.player.GetHand();
-            foreach (Card card in playerHand)
-            {
-                playMenu.RemoveEntityFromEntities(card);
-            }
-            playMenu.player.ClearHand();
-            playMenu.playerHandValue.UpdateMessage(playMenu.player.handValue.ToString());
+            Player player = playMenu.player;
+
+            player.ResetHands();
+            playMenu.playerHandValue.UpdateMessage(0.ToString());
         }
 
         private void ResetDealerHand()
         {
-            List<Card> dealerHand = playMenu.dealer.GetHand();
-            foreach (Card card in dealerHand)
-            {
-                playMenu.RemoveEntityFromEntities(card);
-            }
-            playMenu.dealer.ClearHand();
-            playMenu.dealerHandValue.UpdateMessage(playMenu.dealer.handValue.ToString());
+            Player dealer = playMenu.dealer;
+
+            dealer.ResetHands();
+            playMenu.playerHandValue.UpdateMessage(0.ToString());
         }
 
         public override void Update(float deltaTime)

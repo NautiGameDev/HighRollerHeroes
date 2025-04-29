@@ -1,10 +1,14 @@
-﻿using HighRollerHeroes.Blackjack.Data;
+﻿
+using HighRollerHeroes.Blackjack.Data;
 using HighRollerHeroes.Blackjack.Entities;
 
 namespace HighRollerHeroes.Blackjack.Menus.States
 {
     public class PlayerTurnState : State
     {
+        Sprite playerBusted {  get; set; }
+        Button confirmButton { get; set; }
+
         public PlayerTurnState(Play playMenu) : base(playMenu)
         {
 
@@ -13,13 +17,13 @@ namespace HighRollerHeroes.Blackjack.Menus.States
         public override void Enter()
         {
             playMenu.ToggleActionBar(false);
-            List<Card> playerHand = playMenu.player.GetHand();
+            Player player = playMenu.player;
 
-            if (playerHand.FirstOrDefault().cardValue != playerHand.Last().cardValue)
+            //Tests if the drawn hand of the player has duplicate cards. If method returns false, split button is disabled
+            if (!player.hands[0].TestCanSplit())
             {
-                playMenu.ToggleSplitButton(true); //Disable split button if two cards aren't identical
+                playMenu.ToggleSplitButton(true);
             }
-
         }
 
         public async override void Update(float deltaTime)
@@ -30,26 +34,22 @@ namespace HighRollerHeroes.Blackjack.Menus.States
             {
                 HandlePlayerHit();
             }
+
             else if (PlayerInput.buttonsPressed.Peek() == "Stand")
             {
-                readyToExit = true;
-                EndTurn();
-                PlayerInput.buttonsPressed.Dequeue();
+                HandlePlayerStand();
             }
             else if (PlayerInput.buttonsPressed.Peek() == "Double")
             {
-                readyToExit = true;
-                playMenu.player.health -= playMenu.bet;
-                playMenu.bet *= 2;
-                playMenu.betAmount.UpdateMessage(playMenu.bet.ToString());
-                playMenu.playerHPText.UpdateMessage(playMenu.player.health.ToString());
-                HandlePlayerHit();
-                EndTurn();
+                HandlePlayerDouble();
             }
             else if (PlayerInput.buttonsPressed.Peek() == "Split")
             {
-                //Logic to handle splitting
-                PlayerInput.buttonsPressed.Dequeue();
+                HandlePlayerSplit();
+            }
+            else if (PlayerInput.buttonsPressed.Peek() == "Confirm")
+            {
+                HandlePlayerConfirm();
             }
         }
 
@@ -61,41 +61,161 @@ namespace HighRollerHeroes.Blackjack.Menus.States
 
         private async void HandlePlayerHit()
         {
-            List<Card> playerHand = playMenu.player.GetHand();
+            playMenu.ToggleDoubleButton(true); //Disable double button
+            playMenu.ToggleSplitButton(true);
 
-            foreach (Card card in playerHand)
+            Player player = playMenu.player;
+            PlayerInput.buttonsPressed.Dequeue();
+
+            player.DrawCardFromDeck(false, Card.DeckType.SUN);
+
+            playMenu.playerHandValue.UpdateMessage(player.GetHandValue());
+
+            /* Test if player has busted current hand.
+             If true and player has not split, move on to payout
+             If true and player has split, test which hand is active
+                If first hand is active, switch to second hand
+                If second hand is active, set index to first hand and move on to payout state
+            If player hasn't busted, repeat current state*/
+
+            if (player.TestCurrentHandBust())
             {
-                card.xPos -= 25;
+                if(!player.hasSplit)
+                {
+                    readyToExit = true;
+                    PayOutState payoutState = new PayOutState(playMenu);
+                    playMenu.ChangeState(payoutState);
+                }
+                else if (player.hasSplit && player.handIndex == 0)
+                {
+                    playMenu.ToggleActionBar(true);
+                    playerBusted = new Sprite("Player Bust", (Settings.canvasVerticalWidth / 2) - (800 / 2), 400, 800, 632, 0);
+                    confirmButton = new Button("Confirm", (Settings.canvasVerticalWidth / 2) - (261 / 2), 840);
+                    playMenu.AddEntityToEntities(playerBusted);
+                    playMenu.AddEntityToEntities(confirmButton);
+                }
+                else
+                {
+                    playMenu.ToggleActionBar(true);
+                    playerBusted = new Sprite("Player Bust", (Settings.canvasVerticalWidth / 2) - (800 / 2), 400, 800, 632, 0);
+                    confirmButton = new Button("Confirm", (Settings.canvasVerticalWidth / 2) - (261 / 2), 840);
+                    playMenu.AddEntityToEntities(playerBusted);
+                    playMenu.AddEntityToEntities(confirmButton);
+                }
             }
+        }
 
-            string newCard = await playMenu.player.DrawCardFromDeck();
+        private void HandlePlayerStand()
+        {
+            Player player = playMenu.player;
 
-            /*
-             * New Card position is calculated by taking base position (300,925) and subtracting/adding offsets
-             * Offsets are calculated by taking the amount of hits player has taken + 1 multiplied by offset amount
+            /* Check if player has split hand
+             If false: Exit current state and move on to the next state
+             If True: Check which hand is active
+                If second hand is active move on to next state
+                If first hand is active, switch to second hand
              */
 
-            int timesHit = playerHand.Count() - 2;
-            float newCardXPos = (300 - (25 * (timesHit + 1))) + (100 * (timesHit + 1));
-            float newCardYPos = 925 + (25 * (timesHit + 1));
-            Card drawnCard = new Card(Card.DeckType.SUN, newCardXPos, newCardYPos, newCard, false);
+            if (!player.hasSplit)
+            {
+                readyToExit = true;
+                EndTurn();
+                PlayerInput.buttonsPressed.Dequeue();
+            }
+            else if (player.hasSplit && player.handIndex == 0)
+            {
+                playMenu.player.handIndex = 1;
+                PlayerInput.buttonsPressed.Dequeue();
+            }
+            else if (player.hasSplit && player.handIndex == 1)
+            {
+                player.handIndex = 0;
+                readyToExit = true;
+                EndTurn();
+                PlayerInput.buttonsPressed.Dequeue();
+            }
+        }
 
-            playMenu.player.AddCardToHand(drawnCard);
-            playMenu.AddEntityToEntities(drawnCard);
-            playMenu.playerHandValue.UpdateMessage(playMenu.player.handValue.ToString());
+        private void HandlePlayerDouble()
+        {
+            /*
+             If player has doubled, get the bet for the current hand and double it
+             Remove original bet size from player health and update the player health text
 
-            TestForBust();
+             Test if player has split:
+                False: End turn and move on to dealer turn
+                True and player's active hand is first hand, switch to second hand
+                True and player's active hand is second hand, end turn and move on to dealer turn
+             */
+
+            Player player = playMenu.player;
+            
+            int currentBet = player.hands[player.handIndex].GetBet();
+            player.hands[player.handIndex].SetBet(currentBet * 2);
+            player.health -= currentBet;
+
+            player.DrawCardFromDeck(false, Card.DeckType.SUN);
+
+            playMenu.playerHPText.UpdateMessage(player.health.ToString());
+            playMenu.playerHandValue.UpdateMessage(player.GetHandValue());
+
+            if (!player.hasSplit)
+            {
+                readyToExit = true;
+                EndTurn();
+                PlayerInput.buttonsPressed.Dequeue();
+            }
+            else if (player.hasSplit && player.handIndex == 0)
+            {
+                playMenu.player.handIndex = 1;
+                PlayerInput.buttonsPressed.Dequeue();
+            }
+            else
+            {
+                player.handIndex = 0;
+                readyToExit = true;
+                EndTurn();
+                PlayerInput.buttonsPressed.Dequeue();
+            }
+        }
+
+        private void HandlePlayerSplit()
+        {
+            Player player = playMenu.player;
+            
+            player.SplitHand();
+            player.health -= player.hands[0].GetBet();
+            
+            playMenu.betAmount.UpdateMessage(player.GetBets());
+            playMenu.playerHandValue.UpdateMessage(player.GetHandValue());
+
+            playMenu.ToggleSplitButton(true);
             PlayerInput.buttonsPressed.Dequeue();
         }
 
-        public void TestForBust()
+        private void HandlePlayerConfirm()
         {
-            if (playMenu.player.handValue > 21)
+            Player player = playMenu.player;
+
+            if (player.handIndex == 0)
             {
-                readyToExit = true;
-                PayOutState payoutState = new PayOutState(playMenu);
-                playMenu.ChangeState(payoutState);
+                playMenu.ToggleActionBar(false);
+                playMenu.ToggleSplitButton(true);
+                
+                player.handIndex = 1;
+                PlayerInput.buttonsPressed.Dequeue();
             }
+            else
+            {
+                player.handIndex = 0;
+                readyToExit = true;
+                EndTurn();
+                PlayerInput.buttonsPressed.Dequeue();
+            }
+
+            playMenu.RemoveEntityFromEntities(playerBusted);
+            playMenu.RemoveEntityFromEntities(confirmButton);
+                
         }
 
         public override void Exit()

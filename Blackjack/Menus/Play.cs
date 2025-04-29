@@ -8,9 +8,10 @@ namespace HighRollerHeroes.Blackjack.Menus
     public class Play : Menu
     {
         private List<Entity> entities = new List<Entity>();
-        private List<Entity> tempEntities = new List<Entity>(); //Uses for UI elements that are removed at end of round
         private List<Button> actionBar = new List<Button>();
+        private List<Entity> userInterface = new List<Entity>();
         private Button splitButton {  get; set; }
+        private Button doubleButton { get; set; }
 
         //Text UI
         public TextElement playerHPText { get; set; }
@@ -23,8 +24,7 @@ namespace HighRollerHeroes.Blackjack.Menus
         private Deck deck {  get; set; }
         public Player player { get; set; }
         public Player dealer { get; set; }
-        public int bet { get; set; } = 50;
-        public int betInterval { get; set; } = 50;
+
 
         //Round states
         private State currentState { get; set; }
@@ -32,11 +32,11 @@ namespace HighRollerHeroes.Blackjack.Menus
         public Play()
         {
             deck = new Deck();
-            this.player = new Player(1000, deck);
-            this.dealer = new Player(1000, deck);
+            this.player = new Player(1000, deck, this);
+            this.dealer = new Player(1000, deck, this);
 
             InstantiateBaseEntities();
-            currentState = new BetState(this);
+            currentState = new BetState(this, 50);
             currentState.Enter();
         }
 
@@ -49,13 +49,9 @@ namespace HighRollerHeroes.Blackjack.Menus
             //Buttons
             Button hitButton = new Button("Hit", -10, 1460);
             Button standButton = new Button("Stand", 215, 1460);
-            Button doubleButton = new Button("Double", 440, 1460);
+            doubleButton = new Button("Double", 440, 1460);
             splitButton = new Button("Split", 665, 1460);
 
-            entities.Add(hitButton);
-            entities.Add(standButton);
-            entities.Add(doubleButton);
-            entities.Add(splitButton);
             actionBar.Add(hitButton);
             actionBar.Add(standButton);
             actionBar.Add(doubleButton);
@@ -68,65 +64,35 @@ namespace HighRollerHeroes.Blackjack.Menus
             Sprite playerHandValueBox = new Sprite("Hand Value", (118-115), 30, 130, 127, 0);
             Sprite dealerHandValueBox = new Sprite("Hand Value", (517+251), 30, 130, 127, 0);
 
-            entities.Add(dealerHandValueBox);
-            entities.Add(playerHandValueBox);
-            entities.Add(playerHealthBar);
-            entities.Add(dealerHealthBar);
-            entities.Add(betBackground);
+            userInterface.Add(dealerHandValueBox);
+            userInterface.Add(playerHandValueBox);
+            userInterface.Add(playerHealthBar);
+            userInterface.Add(dealerHealthBar);
+            userInterface.Add(betBackground);
 
             //Text elements
             playerHPText = new TextElement(player.health.ToString(), 48, 118 + (261/2), 60 + (138/2));
-            entities.Add(playerHPText);
+            userInterface.Add(playerHPText);
 
             dealerHPText = new TextElement(dealer.health.ToString(), 48, 517 + (261/2), 60 + (138/2));
-            entities.Add(dealerHPText);
+            userInterface.Add(dealerHPText);
 
-            betAmount = new TextElement(ConvertBetToString(), 48, 379 + (138 / 2), 60 + (138 / 2));
-            entities.Add(betAmount);
+            betAmount = new TextElement(50.ToString(), 48, 379 + (138 / 2), 60 + (138 / 2));
+            userInterface.Add(betAmount);
 
-            playerHandValue = new TextElement(player.handValue.ToString(), 48, (118 - 115) + (130 / 2), 45 + (127 / 2));
-            entities.Add(playerHandValue);
+            playerHandValue = new TextElement(0.ToString(), 48, (118 - 115) + (130 / 2), 45 + (127 / 2));
+            userInterface.Add(playerHandValue);
 
-            dealerHandValue = new TextElement(dealer.handValue.ToString(), 48, (517 + 251) + (130 / 2), 45 + (127 / 2));
-            entities.Add(dealerHandValue);
+            dealerHandValue = new TextElement(0.ToString(), 48, (517 + 251) + (130 / 2), 45 + (127 / 2));
+            userInterface.Add(dealerHandValue);
             
         }
 
-        public string ConvertBetToString()
-        {
-            
-            string adjustedBet = "";
-
-            if (bet >= 1000)
-            {
-                int thousands = (int)bet / 1000;
-                int hundreds = (int)(bet % 1000 / 100);
-
-                if (hundreds > 0)
-                {
-                    adjustedBet = thousands.ToString() + "." + hundreds.ToString() + "k";
-                }
-                else
-                {
-                    adjustedBet = thousands.ToString() + "k";
-                }
-            }
-            else
-            {
-                adjustedBet = bet.ToString();
-            }
-
-            return adjustedBet;
-        }
+        
 
         public void AddEntityToEntities(Entity entity)
         {
             entities.Add(entity);
-        }
-
-        public void AddEntityToTempEntities(Entity entity)
-        {
-            tempEntities.Add(entity);
         }
 
         public void RemoveEntityFromEntities(Entity entity)
@@ -147,6 +113,11 @@ namespace HighRollerHeroes.Blackjack.Menus
             splitButton.isDisabled = value;
         }
 
+        public void ToggleDoubleButton(bool value)
+        {
+            doubleButton.isDisabled = value;
+        }
+
         public void ChangeState(State newState)
         {
             currentState.Exit();
@@ -160,6 +131,16 @@ namespace HighRollerHeroes.Blackjack.Menus
             {
                 await entity.Render();
             }
+
+            foreach (Button button in actionBar)
+            {
+                await button.Render();
+            }
+
+            foreach (Entity entity in userInterface)
+            {
+                await entity.Render();
+            }
         }
 
         public override void Update(float deltaTime)
@@ -167,6 +148,25 @@ namespace HighRollerHeroes.Blackjack.Menus
             foreach (Entity entity in entities)
             {
                 entity.Update(deltaTime);
+            }
+
+            foreach (Button button in actionBar)
+            {
+                button.Update(deltaTime);
+            }
+
+            foreach (Entity entity in userInterface)
+            {
+                entity.Update(deltaTime);
+            }
+
+            //Just for debugging remove later
+            if (PlayerInput.buttonsPressed.Count > 0)
+            {
+                foreach(string action in  PlayerInput.buttonsPressed)
+                {
+                    Console.WriteLine(action);
+                }               
             }
 
             currentState.Update(deltaTime);
